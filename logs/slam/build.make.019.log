@@ -1,0 +1,16 @@
+[35m[1mScanning dependencies of target slam[0m
+[ 25%] [32mBuilding CXX object CMakeFiles/slam.dir/src/integration.cpp.o[0m
+[01m[K/home/ws/catkin_ws/src/slam/src/integration.cpp:[m[K In function ‘[01m[Kvoid scanCallback(const ConstPtr&)[m[K’:
+[01m[K/home/ws/catkin_ws/src/slam/src/integration.cpp:31:53:[m[K [01;31m[Kerror: [m[Kcannot convert ‘[01m[Kfloat() noexcept[m[K’ {aka ‘[01m[Kfloat()[m[K’} to ‘[01m[Ksensor_msgs::LaserScan_<std::allocator<void> >::_range_max_type[m[K’ {aka ‘[01m[Kfloat[m[K’} in assignment
+   31 |     pub_msg.range_max = [01;31m[Kstd::numeric_limits<float>::max[m[K;
+      |                         [01;31m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~[m[K
+      |                                                     [01;31m[K|[m[K
+      |                                                     [01;31m[Kfloat() noexcept {aka float()}[m[K
+[01m[K/home/ws/catkin_ws/src/slam/src/integration.cpp:32:53:[m[K [01;31m[Kerror: [m[Kcannot convert ‘[01m[Kfloat() noexcept[m[K’ {aka ‘[01m[Kfloat()[m[K’} to ‘[01m[Ksensor_msgs::LaserScan_<std::allocator<void> >::_range_min_type[m[K’ {aka ‘[01m[Kfloat[m[K’} in assignment
+   32 |     pub_msg.range_min = [01;31m[Kstd::numeric_limits<float>::min[m[K;
+      |                         [01;31m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~[m[K
+      |                                                     [01;31m[K|[m[K
+      |                                                     [01;31m[Kfloat() noexcept {aka float()}[m[K
+make[2]: *** [CMakeFiles/slam.dir/build.make:63: CMakeFiles/slam.dir/src/integration.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:1162: CMakeFiles/slam.dir/all] Error 2
+make: *** [Makefile:141: all] Error 2
