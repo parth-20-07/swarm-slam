@@ -1,4 +1,0 @@
-[35m[1mScanning dependencies of target slam[0m
-[ 25%] [32mBuilding CXX object CMakeFiles/slam.dir/src/integration.cpp.o[0m
-[ 50%] [32m[1mLinking CXX executable /home/ws/catkin_ws/devel/.private/slam/lib/slam/slam[0m
-[100%] Built target slam

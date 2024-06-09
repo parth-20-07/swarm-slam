@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <vector>
 #include <limits>
+#include <cmath>
 
 struct value_range
 {
@@ -22,10 +23,32 @@ struct value_range
     float max;
 };
 
+struct pose
+{
+    float x;
+    float y;
+    float theta;
+};
+
+struct encoder_ticks
+{
+    float left;
+    float right;
+};
+
+struct encoder_rot
+{
+    double left_wheel_val;
+    double right_wheel_val;
+};
+
+using pose_t = struct pose;
+using value_range_t = struct value_range;
+using encoder_ticks_t = struct encoder_ticks;
+using encoder_rot_t = struct encoder_rot;
+
 /**
  * @brief
- * TODO: Implement Interface to take in ArGos Data
- * TODO: Implement LIDAR Data cleaning Algorithm
  * TODO: Implement Interface to feed data for SLAM
  *
  */
@@ -35,45 +58,59 @@ private:
     /* ---------------------------- Member Functions ---------------------------- */
 
     /* ---------------------------- Member Variables ---------------------------- */
-    std::size_t m_totalLidarDataPoints; // Angle Increment is assumed Uniform
-    struct value_range m_scanDistance   // Lidar Range
-    {
-        .min{0.0F}, .max { 0.0F }
-    };
-    struct value_range m_angleRange // Start and End Angle for LIDAR
-    {
-        .min{0.0F}, .max { 360.0F }
-    };
+    const std::size_t m_totalLidarDataPoints; // Angle Increment is assumed Uniform
+    const value_range_t m_scanDistance        // Lidar Range
+        {
+            .min{0.0F}, .max{0.0F}};
+    const value_range_t m_angleRange // Start and End Angle for LIDAR
+        {
+            .min{0.0F}, .max{360.0F}};
 
 public:
     /* ---------------------------- Member Functions ---------------------------- */
     lidar_data(
         std::size_t number_of_lidar_data_points,
-        value_range scan_distance,
-        value_range angle_range);
+        value_range_t scan_distance,
+        value_range_t angle_range);
     ~lidar_data();
 
-    std::vector<float> process_data(std::vector<float> &data);
+    std::vector<float> m_process_data(std::vector<float> &data);
     /* ---------------------------- Member Variables ---------------------------- */
 };
 
 /**
  * @brief
- * TODO: Write Interface for KheperaIV
  * TODO: Implement Functionality for Robot Odometry
- * TODO: Implement Location/Pose Estimation Functionality
- * TODO: Implement Interface to feed data to SLAM
  */
 class robot_odometry
 {
 private:
     /* ---------------------------- Member Functions ---------------------------- */
+    const std::uint32_t m_encoderCountPerRevolution;
+    const float m_wheelRadius_millimeters;
+    const float m_robotWidthBetweenWheels_millimeters;
+    const float m_encoderNoise{0.05F};
+    const float m_acceptableErrorInEncoder{0.1F};
+    encoder_rot_t m_currentEncoderValue{.left_wheel_val{0.0F}, .right_wheel_val{0.0F}};
+
+    pose_t m_robotPose{.x = 0.0F, .y = 0.0F, .theta = 0.0F};
+
+    pose_t m_calculate_motion(float dL, float dR);
 
     /* ---------------------------- Member Variables ---------------------------- */
 public:
     /* ---------------------------- Member Functions ---------------------------- */
-    robot_odometry(/* args */);
+    robot_odometry(
+        const std::uint32_t encoder_ticks_per_revolution,
+        const float wheel_radius_in_mm,
+        const float distance_between_wheels_in_mm);
     ~robot_odometry();
+
+    const pose_t get_current_pose(void) const { return this->m_robotPose; }
+
+    void m_update_pose(const encoder_ticks_t new_encoder_ticks);         // Uses Encoder Ticks as Input
+    void m_update_pose(const encoder_rot_t new_absolute_encoder_value);  // Uses the Encoder Revolution as Input
+    void m_update_pose(const float x, const float y, const float theta); // Just reformats the pose in required format
 
     /* ---------------------------- Member Variables ---------------------------- */
 };
