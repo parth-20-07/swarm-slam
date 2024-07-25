@@ -17,7 +17,7 @@
 
 #include <algorithm>
 #include <iostream>
-#include <process_sensor_data.h>
+#include <slam/process_sensor_data.h>
 #include <vector>
 #include <Eigen/Dense>
 

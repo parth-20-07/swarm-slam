@@ -5,10 +5,8 @@
  * @date 2024-06-06
  */
 
-#include "process_sensor_data.h"
-
+#include "slam/process_sensor_data.h"
 #include <mutex>
-#include <single_robot_mapping.h>
 #include <thread>
 #include <tuple>
 
@@ -26,20 +24,24 @@ lidar_data::lidar_data(
       m_detectionThreshold(detection_threshold),
       m_anglePerRayIncrement_Radians((m_angleRange_Radians.max - m_angleRange_Radians.min) / m_totalLidarDataPoints),
       m_transformation_to_robot_frame(transformation_to_robot_frame),
-      m_mountingAngleOffset(mountingAngleOffset) {
+      m_mountingAngleOffset(mountingAngleOffset)
+{
 }
 
 // Destructor for lidar_data
 lidar_data::~lidar_data() = default;
 
-std::vector<float> lidar_data::calculate_derivative(const std::vector<float> &data) const {
+std::vector<float> lidar_data::calculate_derivative(const std::vector<float> &data) const
+{
     std::vector<float> derivative;
     derivative.resize(data.size());
     derivative.at(0) = 0.0F;
-    for (std::size_t idx = 1; idx < data.size() - 2; idx++) {
+    for (std::size_t idx = 1; idx < data.size() - 2; idx++)
+    {
         float left = data.at(idx - 1);
         float right = data.at(idx + 1);
-        if (right > m_scanDistance.min && left > m_scanDistance.min) {
+        if (right > m_scanDistance.min && left > m_scanDistance.min)
+        {
             float der = (right - left) / 2.0F;
             if (der <= -m_detectionThreshold)
                 der = -m_detectionThreshold;
@@ -48,7 +50,9 @@ std::vector<float> lidar_data::calculate_derivative(const std::vector<float> &da
             else
                 der = 0.0F;
             derivative.at(idx) = der;
-        } else {
+        }
+        else
+        {
             derivative.at(idx) = 0.0F;
         }
     }
@@ -58,15 +62,20 @@ std::vector<float> lidar_data::calculate_derivative(const std::vector<float> &da
 
 std::vector<obstacle_location_t> lidar_data::find_obstacles(
     const std::vector<float> &data,
-    const std::vector<float> &derivative_data) const {
-    std::vector<obstacle_location_t> all_obstacles; //All the Obstacles in the scan
+    const std::vector<float> &derivative_data) const
+{
+    std::vector<obstacle_location_t> all_obstacles; // All the Obstacles in the scan
 
-    for (std::size_t idx = 0; idx < data.size(); idx++) {
-        if (derivative_data.at(idx) < 0.0F) {
-            //Low Trigger Detected for Obstacle
-            std::vector<obstacle_location_t> obstacles_in_derivative; //Obstacle Indexes in the current derivative
-            while (idx < data.size() && derivative_data.at(idx) <= 0) {
-                if (data.at(idx) > m_scanDistance.min) {
+    for (std::size_t idx = 0; idx < data.size(); idx++)
+    {
+        if (derivative_data.at(idx) < 0.0F)
+        {
+            // Low Trigger Detected for Obstacle
+            std::vector<obstacle_location_t> obstacles_in_derivative; // Obstacle Indexes in the current derivative
+            while (idx < data.size() && derivative_data.at(idx) <= 0)
+            {
+                if (data.at(idx) > m_scanDistance.min)
+                {
                     obstacle_location_t obstacle{.ray_index = idx, .depth = data.at(idx)};
                     obstacles_in_derivative.push_back(obstacle);
                 }
@@ -76,8 +85,8 @@ std::vector<obstacle_location_t> lidar_data::find_obstacles(
             if (idx == data.size())
                 break;
             // if (derivative_data.at(idx) > 0) {
-            //Obstacle Reading Complete
-            for (obstacle_location_t obstacle: obstacles_in_derivative)
+            // Obstacle Reading Complete
+            for (obstacle_location_t obstacle : obstacles_in_derivative)
                 all_obstacles.push_back(obstacle);
             // } else {
             //     //Detected Another Obstacle in front of current one
@@ -89,9 +98,11 @@ std::vector<obstacle_location_t> lidar_data::find_obstacles(
 
 [[nodiscard]] std::vector<coordinate_t> lidar_data::convert_obstacle_to_coordinate_in_lidar_frame(
     const std::vector<obstacle_location_t> &obstacles,
-    const pose_t currentPose) const {
+    const pose_t currentPose) const
+{
     std::vector<coordinate_t> obstacle_positions;
-    for (std::size_t idx = 0; idx < obstacles.size(); idx++) {
+    for (std::size_t idx = 0; idx < obstacles.size(); idx++)
+    {
         auto obstacle = obstacles.at(idx);
         float ray_id = obstacle.ray_index;
         float ray_value = obstacle.depth;
@@ -104,15 +115,17 @@ std::vector<obstacle_location_t> lidar_data::find_obstacles(
     return obstacle_positions;
 }
 
-
 [[nodiscard]] std::vector<coordinate_t> lidar_data::convert_scan_to_coordinate_in_lidar_frame(
     const std::vector<float> &data,
-    const pose_t currentPose) const {
+    const pose_t currentPose) const
+{
     std::vector<coordinate_t> positions;
-    for (std::size_t idx = 0; idx < data.size(); idx++) {
+    for (std::size_t idx = 0; idx < data.size(); idx++)
+    {
         float ray_id = idx;
         float ray_value = data.at(idx);
-        if (ray_value < this->m_scanDistance.max) {
+        if (ray_value < this->m_scanDistance.max)
+        {
             positions.emplace_back(this->m_convert_ray_to_position(currentPose, ray_id, ray_value));
         }
     }
@@ -120,36 +133,36 @@ std::vector<obstacle_location_t> lidar_data::find_obstacles(
     return positions;
 }
 
-
-[[nodiscard]] std::tuple<std::vector<coordinate_t>, std::vector<coordinate_t>, std::vector<coordinate_t> >
+[[nodiscard]] std::tuple<std::vector<coordinate_t>, std::vector<coordinate_t>, std::vector<coordinate_t>>
 lidar_data::process_lidar_scan_to_robot_frame(
     const std::vector<float> &lidar_scan,
-    const pose_t current_pose) {
+    const pose_t current_pose)
+{
     const auto derivative = this->calculate_derivative(lidar_scan);
 
     const auto obstacles =
-            this->find_obstacles(
-                lidar_scan,
-                derivative);
+        this->find_obstacles(
+            lidar_scan,
+            derivative);
 
     auto lidar_map_lidar_frame =
-            this->convert_scan_to_coordinate_in_lidar_frame(
-                lidar_scan,
-                current_pose);
+        this->convert_scan_to_coordinate_in_lidar_frame(
+            lidar_scan,
+            current_pose);
 
     auto obstacles_coordinates_lidar_frame =
-            this->convert_obstacle_to_coordinate_in_lidar_frame(
-                obstacles,
-                current_pose);
+        this->convert_obstacle_to_coordinate_in_lidar_frame(
+            obstacles,
+            current_pose);
 
     auto lidar_map_robot_frame =
-            this->transform_from_lidar_frame_to_robot_frame(lidar_map_lidar_frame);
+        this->transform_from_lidar_frame_to_robot_frame(lidar_map_lidar_frame);
 
     auto obstacles_coordinates_robot_frame =
-            this->transform_from_lidar_frame_to_robot_frame(
-                obstacles_coordinates_lidar_frame);
+        this->transform_from_lidar_frame_to_robot_frame(
+            obstacles_coordinates_lidar_frame);
 
-    return std::make_tuple<std::vector<coordinate_t>, std::vector<coordinate_t>, std::vector<coordinate_t> >(
+    return std::make_tuple<std::vector<coordinate_t>, std::vector<coordinate_t>, std::vector<coordinate_t>>(
         std::move(lidar_map_robot_frame),
         std::move(obstacles_coordinates_robot_frame),
         std::move(obstacles_coordinates_lidar_frame));
@@ -157,10 +170,13 @@ lidar_data::process_lidar_scan_to_robot_frame(
 
 [[nodiscard]] std::vector<coordinate_t> lidar_data::get_coordinates_in_robot_origin_frame(
     const std::vector<coordinate_t> local_frame_coordinates,
-    const pose_t current_pose) {
+    const pose_t current_pose)
+{
     std::vector<coordinate_t> robot_frame_coordinates;
-    for (auto [x_coord, y_coord]: local_frame_coordinates) {
-        if (x_coord != -1.0F) {
+    for (auto [x_coord, y_coord] : local_frame_coordinates)
+    {
+        if (x_coord != -1.0F)
+        {
             // Apply rotation if needed
             float theta = current_pose.theta;
             float x = current_pose.x + (x_coord * std::cos(theta) - y_coord * sin(theta));
@@ -172,10 +188,13 @@ lidar_data::process_lidar_scan_to_robot_frame(
 }
 
 [[nodiscard]] std::vector<coordinate_t> lidar_data::transform_from_lidar_frame_to_robot_frame(
-    const std::vector<coordinate_t> local_frame_coordinates) {
+    const std::vector<coordinate_t> local_frame_coordinates)
+{
     std::vector<coordinate_t> robot_frame_coordinates;
-    for (auto [x_coord, y_coord]: local_frame_coordinates) {
-        if (x_coord != -1.0F) {
+    for (auto [x_coord, y_coord] : local_frame_coordinates)
+    {
+        if (x_coord != -1.0F)
+        {
             // Apply rotation if needed
             float theta = m_transformation_to_robot_frame.theta;
             float x = m_transformation_to_robot_frame.x + (x_coord * std::cos(theta) - y_coord * sin(theta));
@@ -186,20 +205,19 @@ lidar_data::process_lidar_scan_to_robot_frame(
     return robot_frame_coordinates;
 }
 
-
-coordinate_t lidar_data::m_convert_ray_to_position(pose_t current_pose, float ray_id, float ray_value) const {
+coordinate_t lidar_data::m_convert_ray_to_position(pose_t current_pose, float ray_id, float ray_value) const
+{
     // const float alpha = ray_id * m_anglePerRayIncrement_Radians; // Angle of the current ray
     // static const float half_FoV = (static_cast<float>(m_totalLidarDataPoints) / 2.0F) * m_anglePerRayIncrement_Radians;
     // const float gamma = half_FoV - alpha; // Adjusting alpha to the lidar frame
     const float gamma = (ray_id - 330.0) * 0.006135923151543 + m_mountingAngleOffset;
-    //TODO: Change this to actual formula when you know about lidar
+    // TODO: Change this to actual formula when you know about lidar
 
     const float dX = ray_value * std::cos(gamma);
     const float dY = ray_value * std::sin(gamma);
 
     return coordinate_t{dX, dY};
 }
-
 
 // Constructor for robot_odometry
 robot_odometry::robot_odometry(
@@ -210,40 +228,45 @@ robot_odometry::robot_odometry(
     : m_encoderTicksPerMillimeter(encoder_ticks_per_mm),
       m_robotWidthBetweenWheels_millimeters(distance_between_wheels_in_mm),
       m_currentEncoderTickValue(starting_encoder_ticks),
-      m_robotPose(starting_pose) {
+      m_robotPose(starting_pose)
+{
 }
 
 // Destructor for robot_odometry
 robot_odometry::~robot_odometry() = default;
 
 // Update pose using x, y, and theta
-void robot_odometry::m_update_pose(const float x, const float y, const float theta) {
+void robot_odometry::m_update_pose(const float x, const float y, const float theta)
+{
     this->m_robotPose.x = x;
     this->m_robotPose.y = y;
     this->m_robotPose.theta = theta;
 }
 
 // Update pose using encoder ticks
-pose_t robot_odometry::m_update_pose(const encoder_ticks_t new_encoder_ticks) {
-    const float dL = (new_encoder_ticks.left - this->m_currentEncoderTickValue.left) * this->
-                     m_encoderTicksPerMillimeter;
-    const float dR = (new_encoder_ticks.right - this->m_currentEncoderTickValue.right) * this->
-                     m_encoderTicksPerMillimeter;
+pose_t robot_odometry::m_update_pose(const encoder_ticks_t new_encoder_ticks)
+{
+    const float dL = (new_encoder_ticks.left - this->m_currentEncoderTickValue.left) * this->m_encoderTicksPerMillimeter;
+    const float dR = (new_encoder_ticks.right - this->m_currentEncoderTickValue.right) * this->m_encoderTicksPerMillimeter;
     this->m_calculate_motion(dL, dR);
     this->m_currentEncoderTickValue = new_encoder_ticks;
     return this->m_robotPose;
 }
 
 // Calculate motion based on wheel distances
-void robot_odometry::m_calculate_motion(const float dL, const float dR) {
+void robot_odometry::m_calculate_motion(const float dL, const float dR)
+{
     float newTheta, newX, newY;
 
-    if (dL == dR) {
+    if (dL == dR)
+    {
         // Motion is translational
         newX = this->m_robotPose.x + (dL * std::cos(this->m_robotPose.theta));
         newY = this->m_robotPose.y + (dL * std::sin(this->m_robotPose.theta));
         newTheta = this->m_robotPose.theta;
-    } else {
+    }
+    else
+    {
         // Motion is rotational
         const float alpha = (dR - dL) / this->m_robotWidthBetweenWheels_millimeters;
         const float radiusOfRotation = dL / alpha;
@@ -259,17 +282,19 @@ void robot_odometry::m_calculate_motion(const float dL, const float dR) {
     this->m_robotPose = pose_t{newX, newY, newTheta};
 }
 
-
 //////////////////////////////////// Localization ////////////////////////////////////////////
 
 std::vector<float> calculateDistances(const std::vector<coordinate_t> &obstacles, float grid_size);
 
 // Calculate distances between obstacles
-std::vector<float> calculateDistances(const std::vector<coordinate_t> &obstacles, float grid_size) {
+std::vector<float> calculateDistances(const std::vector<coordinate_t> &obstacles, float grid_size)
+{
     std::vector<float> distances;
 
-    for (size_t i = 0; i < obstacles.size(); ++i) {
-        for (size_t j = i + 1; j < obstacles.size(); ++j) {
+    for (size_t i = 0; i < obstacles.size(); ++i)
+    {
+        for (size_t j = i + 1; j < obstacles.size(); ++j)
+        {
             float dx = (obstacles[j].x - obstacles[i].x) / grid_size;
             float dy = (obstacles[j].y - obstacles[i].y) / grid_size;
             float distance = std::sqrt(dx * dx + dy * dy);
