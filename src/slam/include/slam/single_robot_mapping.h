@@ -9,12 +9,18 @@
  *
  */
 
+#ifndef SINGLE_ROBOT_MAPPING
+#define SINGLE_ROBOT_MAPPING
+
 #ifndef SINGLE_ROBOT_MAPPING_H
 #define SINGLE_ROBOT_MAPPING_H
 
+#include <algorithm>
 #include <iostream>
+#include <process_sensor_data.h>
 #include <vector>
-#include <stdint.h>
+#include <Eigen/Dense>
+
 enum class cellState
 {
     EMPTY = 0,
@@ -22,20 +28,16 @@ enum class cellState
     FILLED = 2
 };
 
-typedef std::vector<std::vector<cellState>> Grid;
+typedef Eigen::Matrix<cellState, Eigen::Dynamic, Eigen::Dynamic> Grid;
 
-/**
- * @brief
- * TODO: Implement Interface to take in Sensor Data
- * TODO: Implement Functionality to use LIDAR Data with ODOM to estimate Occupancy Cell
- * TODO: Implement Loop Closure Functionality
- * TODO: Implement Interface to enable Multi-robot SLAM
- */
 class map_environment
 {
 public:
     map_environment(const float &total_grid_length_millimeters, const float &grid_cell_length_millimeters);
+
     ~map_environment();
+
+    Grid updateMap_robot_origin_frame(const std::vector<coordinate_t> &lidarScan, const pose_t &current_pose);
 
     /* --------------------------------- Getters -------------------------------- */
     [[nodiscard]] const float getGridLength() const noexcept { return this->m_totalGridLength_millimeters; }
@@ -44,15 +46,18 @@ public:
 
     bool resize_grid(const float &new_grid_length_millimeters);
 
+    int m_center;
+
 private:
     /* ---------------------------- Member Functions ---------------------------- */
     std::size_t calculate_grid_cell_count(const float &grid_length_millimeters);
 
     /* ---------------------------- Member Variables ---------------------------- */
     float m_totalGridLength_millimeters;
-    float m_gridSize_millimeters;
+    float m_gridCellSize_millimeters;
     size_t m_cellCount;
     Grid m_gridMap;
 };
-
 #endif // SINGLE_ROBOT_MAPPING_H
+
+#endif /* SINGLE_ROBOT_MAPPING */

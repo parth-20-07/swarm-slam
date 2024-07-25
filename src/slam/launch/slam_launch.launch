@@ -1,0 +1,4 @@
+<launch>
+    <!-- Launch the SLAM node -->
+    <node name="slam_node" pkg="slam" type="slam" output="screen"/>
+</launch>

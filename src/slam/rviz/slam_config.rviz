@@ -1,0 +1,11 @@
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /particles
+      Name: Particles
+    - Class: rviz/Pose
+      Enabled: true
+      Topic: /estimated_pose
+      Name: Estimated Pose

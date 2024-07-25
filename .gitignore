@@ -95,3 +95,5 @@ CATKIN_IGNORE
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+.catkin_tools
