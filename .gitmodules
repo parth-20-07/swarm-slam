@@ -1,0 +1,6 @@
+[submodule "src/slam/ext/eigen"]
+	path = src/slam/ext/eigen
+	url = https://gitlab.com/libeigen/eigen
+[submodule "src/slam/ext/matplotlibcpp"]
+	path = src/slam/ext/matplotlibcpp
+	url = https://github.com/lava/matplotlib-cpp.git
