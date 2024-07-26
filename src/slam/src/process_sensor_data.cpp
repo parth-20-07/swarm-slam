@@ -9,6 +9,9 @@
 #include <mutex>
 #include <thread>
 #include <tuple>
+#include <matplotlibcpp.h>
+#include <math.h>
+namespace plt = matplotlibcpp;
 
 // Constructor for lidar_data
 lidar_data::lidar_data(
@@ -17,14 +20,16 @@ lidar_data::lidar_data(
     value_range_t angle_range_Radians,
     float detection_threshold,
     const pose_t transformation_to_robot_frame,
-    const float mountingAngleOffset)
+    const float mountingAngleOffset,
+    const float multiplier)
     : m_totalLidarDataPoints(number_of_lidar_data_points),
       m_scanDistance(scan_distance),
       m_angleRange_Radians{angle_range_Radians},
       m_detectionThreshold(detection_threshold),
       m_anglePerRayIncrement_Radians((m_angleRange_Radians.max - m_angleRange_Radians.min) / m_totalLidarDataPoints),
       m_transformation_to_robot_frame(transformation_to_robot_frame),
-      m_mountingAngleOffset(mountingAngleOffset)
+      m_mountingAngleOffset(mountingAngleOffset),
+      m_multiplier(multiplier)
 {
 }
 
@@ -42,14 +47,7 @@ std::vector<float> lidar_data::calculate_derivative(const std::vector<float> &da
         float right = data.at(idx + 1);
         if (right > m_scanDistance.min && left > m_scanDistance.min)
         {
-            float der = (right - left) / 2.0F;
-            if (der <= -m_detectionThreshold)
-                der = -m_detectionThreshold;
-            else if (der >= m_detectionThreshold)
-                der = m_detectionThreshold;
-            else
-                der = 0.0F;
-            derivative.at(idx) = der;
+            derivative.at(idx) = (right - left) / 2.0F;
         }
         else
         {
@@ -135,10 +133,38 @@ std::vector<obstacle_location_t> lidar_data::find_obstacles(
 
 [[nodiscard]] std::tuple<std::vector<coordinate_t>, std::vector<coordinate_t>, std::vector<coordinate_t>>
 lidar_data::process_lidar_scan_to_robot_frame(
-    const std::vector<float> &lidar_scan,
+    std::vector<float> &lidar_scan,
     const pose_t current_pose)
 {
-    const auto derivative = this->calculate_derivative(lidar_scan);
+    for (size_t idx = 0; idx < lidar_scan.size(); idx++)
+    {
+        if (isnan(lidar_scan.at(idx)) || lidar_scan.at(idx) == INFINITY)
+        {
+            lidar_scan.at(idx) = this->m_scanDistance.max;
+        }
+    }
+    auto derivative = this->calculate_derivative(lidar_scan);
+    // Thresholding the derivaties
+    for (size_t idx = 0; idx < derivative.size(); idx++)
+    {
+        float der = derivative.at(idx);
+        if (der <= -m_detectionThreshold)
+            der = -m_detectionThreshold;
+        else if (der >= m_detectionThreshold)
+            der = m_detectionThreshold;
+        else
+            der = 0.0F;
+        derivative.at(idx) = der;
+    }
+    // Plot the derivative using matplotlibcpp
+
+    //  plt::named_plot("Derivative", derivative);
+    //  plt::named_plot("Scan", lidar_scan);
+    // plt::title("Lidar Scan Derivative");
+    // plt::xlabel("Index");
+    // plt::ylabel("Value");
+    // plt::legend();
+    // plt::show();
 
     const auto obstacles =
         this->find_obstacles(
@@ -205,16 +231,16 @@ lidar_data::process_lidar_scan_to_robot_frame(
     return robot_frame_coordinates;
 }
 
-coordinate_t lidar_data::m_convert_ray_to_position(pose_t current_pose, float ray_id, float ray_value) const
+coordinate_t lidar_data::m_convert_ray_to_position(pose_t current_pose, int ray_id, float ray_value) const
 {
-    // const float alpha = ray_id * m_anglePerRayIncrement_Radians; // Angle of the current ray
-    // static const float half_FoV = (static_cast<float>(m_totalLidarDataPoints) / 2.0F) * m_anglePerRayIncrement_Radians;
-    // const float gamma = half_FoV - alpha; // Adjusting alpha to the lidar frame
-    const float gamma = (ray_id - 330.0) * 0.006135923151543 + m_mountingAngleOffset;
+    const float alpha = ray_id * m_anglePerRayIncrement_Radians; // Angle of the current ray
+    static const float half_FoV = (static_cast<float>(m_totalLidarDataPoints) / 2.0F) * m_anglePerRayIncrement_Radians;
+    const float gamma = half_FoV - alpha; // Adjusting alpha to the lidar frame
+    // const float gamma = (ray_id - 330.0) * 0.006135923151543 + m_mountingAngleOffset;
     // TODO: Change this to actual formula when you know about lidar
 
-    const float dX = ray_value * std::cos(gamma);
-    const float dY = ray_value * std::sin(gamma);
+    const float dX = ray_value * m_multiplier * std::cos(gamma);
+    const float dY = ray_value * m_multiplier * std::sin(gamma);
 
     return coordinate_t{dX, dY};
 }
@@ -232,15 +258,24 @@ robot_odometry::robot_odometry(
 {
 }
 
+robot_odometry::robot_odometry(float distance_between_wheels_in_mm, float xStart, float yStart, float thetaStart)
+    : m_encoderTicksPerMillimeter(0),
+      m_robotWidthBetweenWheels_millimeters(distance_between_wheels_in_mm),
+      m_startPose(xStart, yStart, thetaStart)
+{
+}
+
 // Destructor for robot_odometry
 robot_odometry::~robot_odometry() = default;
 
 // Update pose using x, y, and theta
-void robot_odometry::m_update_pose(const float x, const float y, const float theta)
+pose_t robot_odometry::m_update_pose(const float x, const float y, const float theta)
 {
-    this->m_robotPose.x = x;
-    this->m_robotPose.y = y;
-    this->m_robotPose.theta = theta;
+    this->m_robotPose.x = x - m_startPose.x;
+    this->m_robotPose.y = y - m_startPose.y;
+    this->m_robotPose.theta = theta - m_startPose.theta;
+
+    return this->m_robotPose;
 }
 
 // Update pose using encoder ticks

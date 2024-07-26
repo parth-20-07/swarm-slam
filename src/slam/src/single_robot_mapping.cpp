@@ -16,9 +16,9 @@ map_environment::map_environment(const float &total_grid_length_millimeters, con
     : m_totalGridLength_millimeters(total_grid_length_millimeters),
       m_gridCellSize_millimeters(grid_cell_length_millimeters),
       m_cellCount(static_cast<int>(total_grid_length_millimeters / grid_cell_length_millimeters)),
-      m_center(static_cast<int>(m_cellCount / 2.0F)),
       m_gridMap(m_cellCount, m_cellCount)
 {
+    m_center = static_cast<int>(m_cellCount / 2.0F);
     m_gridMap.setConstant(cellState::UNKNOWN);
 }
 
@@ -49,9 +49,9 @@ bool map_environment::resize_grid(const float &new_grid_length_millimeters)
 
         // Update the grid map with the new grid
         std::swap(this->m_gridMap, newGrid);
+        std::cout << "Resize Successful!!" << "\nCurrent size is: " << static_cast<int>(this->m_totalGridLength_millimeters) << " mm | " << static_cast<int>(m_cellCount)
+                  << "\nNew Requested Grid Size: " << static_cast<int>(new_grid_length_millimeters) << " mm| " << static_cast<int>(newCellCount) << std::endl;
         this->m_cellCount = newCellCount;
-        std::cout << "Resize Successful!!" << "\nCurrent size is: " << static_cast<int>(this->m_totalGridLength_millimeters)
-                  << "\nNew Requested Grid Size: " << static_cast<int>(new_grid_length_millimeters) << std::endl;
         this->m_totalGridLength_millimeters = new_grid_length_millimeters;
         this->m_center = static_cast<int>(this->m_cellCount / 2.0F);
         return true;
@@ -81,17 +81,17 @@ Grid map_environment::updateMap_robot_origin_frame(const std::vector<coordinate_
             float x = current_pose.x + (x_scan * cos(theta) - y_scan * sin(theta));
             float y = current_pose.y + (x_scan * sin(theta) + y_scan * cos(theta));
 
-            // Check grid boundaries and resize if necessary
-            if ((2.0F * x > this->m_totalGridLength_millimeters) || (2.0F * y > this->m_totalGridLength_millimeters))
-            {
-                float new_length = std::max(x, y);
-                new_length *= 3.0f;
-                resize_grid(new_length);
-            }
-
-            // Convert to grid indices
             int x_off = m_center + static_cast<int>(x / this->m_gridCellSize_millimeters);
             int y_off = m_center + static_cast<int>(y / this->m_gridCellSize_millimeters);
+
+            // Check grid boundaries and resize if necessary
+            while (x_off < 0 || x_off >= m_cellCount || y_off < 0 || y_off >= m_cellCount)
+            {
+                float new_length = m_totalGridLength_millimeters * 4.0F;
+                resize_grid(new_length);
+                x_off = m_center + static_cast<int>(x / this->m_gridCellSize_millimeters);
+                y_off = m_center + static_cast<int>(y / this->m_gridCellSize_millimeters);
+            }
             m_gridMap(y_off, x_off) = cellState::FILLED;
         }
     }

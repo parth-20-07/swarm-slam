@@ -20,6 +20,7 @@
 #include <slam/process_sensor_data.h>
 #include <vector>
 #include <Eigen/Dense>
+#include <math.h>
 
 enum class cellState
 {
