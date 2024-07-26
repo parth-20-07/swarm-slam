@@ -1,21 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 project(slam)
-message("Source directory: ${CMAKE_SOURCE_DIR}")
-
-# Function to list and print directories
-function(list_directories directory)
-  file(GLOB subdirectories LIST_DIRECTORIES true ${directory}/*)
-
-  foreach(subdirectory ${subdirectories})
-    if(IS_DIRECTORY ${subdirectory})
-      message("Directory: ${subdirectory}")
-    endif()
-  endforeach()
-endfunction()
-
-message("Wanted directory: ${CMAKE_SOURCE_DIR}/ext")
-
-list_directories(${CMAKE_SOURCE_DIR}/ext)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -27,11 +11,17 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(OpenCV REQUIRED)
-find_package(OpenCV REQUIRED)
 find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
 set(pybind11_DIR "~/.local/lib/python3.8/site-packages/pybind11/share/cmake/pybind11")
 find_package(pybind11 REQUIRED)
 find_package(fmt REQUIRED)
+
+if(fmt_FOUND)
+  message(STATUS "fmt found: ${fmt_INCLUDE_DIRS}")
+else()
+  message(FATAL_ERROR "fmt not found")
+endif()
+
 find_package(Threads REQUIRED)
 
 catkin_package()

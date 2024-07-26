@@ -55,7 +55,6 @@ public:
     lidar_data(
         std::size_t number_of_lidar_data_points,
         value_range_t scan_distance,
-        value_range_t angle_range_Radians,
         float detection_threshold,
         const pose_t transformation_to_robot_frame,
         const float mountingAngleOffset,
@@ -63,7 +62,7 @@ public:
 
     ~lidar_data();
 
-    [[nodiscard]] std::tuple<std::vector<coordinate_t>, std::vector<coordinate_t>, std::vector<coordinate_t>> process_lidar_scan_to_robot_frame(
+    [[nodiscard]] std::vector<coordinate_t> process_lidar_scan_to_robot_frame(
         std::vector<float> &lidar_scan,
         const pose_t current_pose);
 
@@ -74,13 +73,12 @@ public:
     [[nodiscard]] std::vector<coordinate_t> transform_from_lidar_frame_to_robot_frame(
         const std::vector<coordinate_t> local_frame_coordinates);
 
-    const value_range_t m_angleRange_Radians; // LIDAR angle range
     const std::size_t m_totalLidarDataPoints; // Total LIDAR data points
 
 private:
     const value_range_t m_scanDistance; // LIDAR scan distance range
     const float m_detectionThreshold;   // Threshold Value to Consider an object as obstacle
-    const float m_anglePerRayIncrement_Radians;
+    const float m_anglePerRayIncrement_Degrees;
     const pose_t m_transformation_to_robot_frame;
     const float m_mountingAngleOffset;
     const float m_multiplier;

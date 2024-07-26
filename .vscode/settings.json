@@ -83,7 +83,8 @@
         "alignedvector3": "cpp",
         "fft": "cpp",
         "nnls": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "*.ipp": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

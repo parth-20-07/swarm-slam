@@ -48,6 +48,7 @@ public:
     bool resize_grid(const float &new_grid_length_millimeters);
 
     int m_center;
+    float m_gridCellSize_millimeters;
 
 private:
     /* ---------------------------- Member Functions ---------------------------- */
@@ -55,7 +56,6 @@ private:
 
     /* ---------------------------- Member Variables ---------------------------- */
     float m_totalGridLength_millimeters;
-    float m_gridCellSize_millimeters;
     size_t m_cellCount;
     Grid m_gridMap;
 };

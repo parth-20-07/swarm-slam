@@ -9,24 +9,20 @@
 #include <mutex>
 #include <thread>
 #include <tuple>
-#include <matplotlibcpp.h>
 #include <math.h>
-namespace plt = matplotlibcpp;
 
 // Constructor for lidar_data
 lidar_data::lidar_data(
     std::size_t number_of_lidar_data_points,
     value_range_t scan_distance,
-    value_range_t angle_range_Radians,
     float detection_threshold,
     const pose_t transformation_to_robot_frame,
     const float mountingAngleOffset,
     const float multiplier)
     : m_totalLidarDataPoints(number_of_lidar_data_points),
       m_scanDistance(scan_distance),
-      m_angleRange_Radians{angle_range_Radians},
       m_detectionThreshold(detection_threshold),
-      m_anglePerRayIncrement_Radians((m_angleRange_Radians.max - m_angleRange_Radians.min) / m_totalLidarDataPoints),
+      m_anglePerRayIncrement_Degrees(number_of_lidar_data_points / 360.0F),
       m_transformation_to_robot_frame(transformation_to_robot_frame),
       m_mountingAngleOffset(mountingAngleOffset),
       m_multiplier(multiplier)
@@ -104,10 +100,11 @@ std::vector<obstacle_location_t> lidar_data::find_obstacles(
         auto obstacle = obstacles.at(idx);
         float ray_id = obstacle.ray_index;
         float ray_value = obstacle.depth;
-        obstacle_positions.emplace_back(this->m_convert_ray_to_position(
-            currentPose,
-            ray_id,
-            ray_value));
+        if (ray_value < m_scanDistance.max)
+            obstacle_positions.emplace_back(this->m_convert_ray_to_position(
+                currentPose,
+                ray_id,
+                ray_value));
     }
 
     return obstacle_positions;
@@ -122,17 +119,14 @@ std::vector<obstacle_location_t> lidar_data::find_obstacles(
     {
         float ray_id = idx;
         float ray_value = data.at(idx);
-        if (ray_value < this->m_scanDistance.max)
-        {
+        if (ray_value < m_scanDistance.max)
             positions.emplace_back(this->m_convert_ray_to_position(currentPose, ray_id, ray_value));
-        }
     }
 
     return positions;
 }
 
-[[nodiscard]] std::tuple<std::vector<coordinate_t>, std::vector<coordinate_t>, std::vector<coordinate_t>>
-lidar_data::process_lidar_scan_to_robot_frame(
+[[nodiscard]] std::vector<coordinate_t> lidar_data::process_lidar_scan_to_robot_frame(
     std::vector<float> &lidar_scan,
     const pose_t current_pose)
 {
@@ -143,55 +137,10 @@ lidar_data::process_lidar_scan_to_robot_frame(
             lidar_scan.at(idx) = this->m_scanDistance.max;
         }
     }
-    auto derivative = this->calculate_derivative(lidar_scan);
-    // Thresholding the derivaties
-    for (size_t idx = 0; idx < derivative.size(); idx++)
-    {
-        float der = derivative.at(idx);
-        if (der <= -m_detectionThreshold)
-            der = -m_detectionThreshold;
-        else if (der >= m_detectionThreshold)
-            der = m_detectionThreshold;
-        else
-            der = 0.0F;
-        derivative.at(idx) = der;
-    }
-    // Plot the derivative using matplotlibcpp
 
-    //  plt::named_plot("Derivative", derivative);
-    //  plt::named_plot("Scan", lidar_scan);
-    // plt::title("Lidar Scan Derivative");
-    // plt::xlabel("Index");
-    // plt::ylabel("Value");
-    // plt::legend();
-    // plt::show();
-
-    const auto obstacles =
-        this->find_obstacles(
-            lidar_scan,
-            derivative);
-
-    auto lidar_map_lidar_frame =
-        this->convert_scan_to_coordinate_in_lidar_frame(
-            lidar_scan,
-            current_pose);
-
-    auto obstacles_coordinates_lidar_frame =
-        this->convert_obstacle_to_coordinate_in_lidar_frame(
-            obstacles,
-            current_pose);
-
-    auto lidar_map_robot_frame =
-        this->transform_from_lidar_frame_to_robot_frame(lidar_map_lidar_frame);
-
-    auto obstacles_coordinates_robot_frame =
-        this->transform_from_lidar_frame_to_robot_frame(
-            obstacles_coordinates_lidar_frame);
-
-    return std::make_tuple<std::vector<coordinate_t>, std::vector<coordinate_t>, std::vector<coordinate_t>>(
-        std::move(lidar_map_robot_frame),
-        std::move(obstacles_coordinates_robot_frame),
-        std::move(obstacles_coordinates_lidar_frame));
+    auto lidar_scan_in_cartesian_frame = this->convert_scan_to_coordinate_in_lidar_frame(lidar_scan, current_pose);
+    auto lidar_scan_robot_frame = this->transform_from_lidar_frame_to_robot_frame(lidar_scan_in_cartesian_frame);
+    return (std::move(lidar_scan_robot_frame));
 }
 
 [[nodiscard]] std::vector<coordinate_t> lidar_data::get_coordinates_in_robot_origin_frame(
@@ -233,14 +182,14 @@ lidar_data::process_lidar_scan_to_robot_frame(
 
 coordinate_t lidar_data::m_convert_ray_to_position(pose_t current_pose, int ray_id, float ray_value) const
 {
-    const float alpha = ray_id * m_anglePerRayIncrement_Radians; // Angle of the current ray
-    static const float half_FoV = (static_cast<float>(m_totalLidarDataPoints) / 2.0F) * m_anglePerRayIncrement_Radians;
+    static const int x_axis_ray_id = 0;
+    const float alpha = (ray_id)*m_anglePerRayIncrement_Degrees * M_PI / 180.0F; // Angle of the current ray
+    static const float half_FoV = (static_cast<float>(m_totalLidarDataPoints) / 2.0F) * m_anglePerRayIncrement_Degrees;
     const float gamma = half_FoV - alpha; // Adjusting alpha to the lidar frame
     // const float gamma = (ray_id - 330.0) * 0.006135923151543 + m_mountingAngleOffset;
-    // TODO: Change this to actual formula when you know about lidar
 
-    const float dX = ray_value * m_multiplier * std::cos(gamma);
-    const float dY = ray_value * m_multiplier * std::sin(gamma);
+    const float dX = ray_value * m_multiplier * std::cos(alpha);
+    const float dY = ray_value * m_multiplier * std::sin(alpha);
 
     return coordinate_t{dX, dY};
 }
@@ -271,10 +220,13 @@ robot_odometry::~robot_odometry() = default;
 // Update pose using x, y, and theta
 pose_t robot_odometry::m_update_pose(const float x, const float y, const float theta)
 {
-    this->m_robotPose.x = x - m_startPose.x;
-    this->m_robotPose.y = y - m_startPose.y;
-    this->m_robotPose.theta = theta - m_startPose.theta;
+    // this->m_robotPose.x = x - m_startPose.x;
+    // this->m_robotPose.y = dy - m_startPose.y;
+    // this->m_robotPose.theta = theta - m_startPose.theta;
 
+    this->m_robotPose.x = x;
+    this->m_robotPose.y = y;
+    this->m_robotPose.theta = theta;
     return this->m_robotPose;
 }
 
