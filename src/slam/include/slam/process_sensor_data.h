@@ -19,7 +19,7 @@ typedef struct
     float max;
 } value_range_t;
 
-typedef struct pose_t
+struct pose_t
 {
     float x;
     float y;

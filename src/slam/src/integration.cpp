@@ -3,6 +3,7 @@
 #include "nav_msgs/Odometry.h"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include "std_msgs/Bool.h"
 
 #include <boost/bind.hpp>
 #include <opencv2/opencv.hpp>
@@ -35,6 +36,7 @@ typedef struct
     ros::Subscriber encoder_sub;
     ros::Subscriber lidar_sub;
     std::mutex data_mutex; // Mutex to protect data access
+    ros::Publisher motion_pub;
 
 } Robot;
 
@@ -93,6 +95,9 @@ void encoderCallback(const nav_msgs::Odometry::ConstPtr &msg, // Position is in 
             msg->pose.pose.position.y * 1000.0F,
             yaw);
         ROS_INFO("Encoder Initialization Success!");
+        std_msgs::Bool motion_msg;
+        motion_msg.data = true; // or false based on your control logic
+        robot.motion_pub.publish(motion_msg);
     }
 
     robot.robot_pose = robot.robotOdomObject->m_update_pose(
@@ -138,6 +143,7 @@ int main(int argc, char **argv)
                                                                       boost::bind(encoderCallback, _1, boost::ref(robotData)));
             robotData.lidar_sub = nh.subscribe<sensor_msgs::LaserScan>("tb3_"+std::to_string(i)+"/scan", 1000,
                                                                        boost::bind(lidarCallback, _1, boost::ref(robotData), i));
+            robotData.motion_pub = nh.advertise<std_msgs::Bool>("tb3_" + std::to_string(i) + "/motion_control", 10);
 
             ros::MultiThreadedSpinner spinner(4); // Use a multi-threaded spinner
             spinner.spin(); });
