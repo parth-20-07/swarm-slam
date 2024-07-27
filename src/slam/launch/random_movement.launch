@@ -1,0 +1,9 @@
+<launch>
+    <arg name="robot1" default="tb3_0"/>
+    <arg name="robot2" default="tb3_1"/>
+    <arg name="robot3" default="tb3_2"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_0" args="$(arg robot1)" output="screen"/>
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_1" args="$(arg robot2)" output="screen"/>
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_2" args="$(arg robot3)" output="screen"/>
+</launch>

@@ -22,7 +22,7 @@ const pose_t lidar_to_robot_transformation{0.0F, 0.0F, 0.0F};
 /////////////////////////// Mapping Variables /////////////////////////////
 constexpr float grid_size = 10.0f;
 ////////////////////////// Thread Specific Variables ////////////////////////
-#define NUM_ROBOTS 1
+#define NUM_ROBOTS 3
 
 typedef struct
 {
@@ -70,8 +70,6 @@ void lidarCallback(const sensor_msgs::LaserScan::ConstPtr &msg,
 
     Viz::gridToImage(robot.slam_map_image, currentMap_robot_origin_frame);
     Viz::plotGraphPoints(robot.slam_map_image, robot.all_pose_robot_global_frame, Viz::red, robot.slam_map_image.cols, robot.robotMap);
-    cv::imshow("Lidar Map " + std::to_string(idx), robot.slam_map_image);
-    cv::waitKey(10);
 }
 
 void encoderCallback(const nav_msgs::Odometry::ConstPtr &msg, // Position is in Meters
@@ -103,6 +101,21 @@ void encoderCallback(const nav_msgs::Odometry::ConstPtr &msg, // Position is in 
         yaw);
 }
 
+void displayThread(std::vector<std::unique_ptr<Robot>> &robots)
+{
+    while (ros::ok())
+    {
+        for (int i = 0; i < NUM_ROBOTS; ++i)
+        {
+            std::lock_guard<std::mutex> lock(robots[i]->data_mutex);
+
+            if (!robots[i]->slam_map_image.empty())
+                cv::imshow("Lidar Map " + std::to_string(i), robots[i]->slam_map_image);
+        }
+        cv::waitKey(1); // Adjust the delay as needed
+    }
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "slam_integration");
@@ -121,14 +134,16 @@ int main(int argc, char **argv)
         robot_threads.emplace_back([&nh, &robots, i]()
                                    {
             auto &robotData = *robots[i];
-            robotData.encoder_sub = nh.subscribe<nav_msgs::Odometry>( "/odom", 1000,
+            robotData.encoder_sub = nh.subscribe<nav_msgs::Odometry>( "tb3_"+std::to_string(i)+"/odom", 1000,
                                                                       boost::bind(encoderCallback, _1, boost::ref(robotData)));
-            robotData.lidar_sub = nh.subscribe<sensor_msgs::LaserScan>("/scan", 1000,
+            robotData.lidar_sub = nh.subscribe<sensor_msgs::LaserScan>("tb3_"+std::to_string(i)+"/scan", 1000,
                                                                        boost::bind(lidarCallback, _1, boost::ref(robotData), i));
 
-            ros::spin();
-            cv::destroyWindow("Lidar Map " + std::to_string(i)); });
+            ros::MultiThreadedSpinner spinner(4); // Use a multi-threaded spinner
+            spinner.spin(); });
     }
+
+    std::thread display_thread(displayThread, std::ref(robots));
 
     for (auto &thread : robot_threads)
     {
@@ -137,5 +152,11 @@ int main(int argc, char **argv)
             thread.join();
         }
     }
+
+    if (display_thread.joinable())
+    {
+        display_thread.join();
+    }
+
     return 0;
 }

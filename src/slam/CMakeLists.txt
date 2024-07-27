@@ -70,3 +70,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 install(FILES package.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+catkin_install_python(PROGRAMS scripts/random_movement.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

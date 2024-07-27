@@ -87,7 +87,7 @@ Grid map_environment::updateMap_robot_origin_frame(const std::vector<coordinate_
             // Check grid boundaries and resize if necessary
             while (x_off < 0 || x_off >= m_cellCount || y_off < 0 || y_off >= m_cellCount)
             {
-                float new_length = m_totalGridLength_millimeters * 4.0F;
+                float new_length = m_totalGridLength_millimeters * 2.0F;
                 resize_grid(new_length);
                 x_off = m_center + static_cast<int>(x / this->m_gridCellSize_millimeters);
                 y_off = m_center + static_cast<int>(y / this->m_gridCellSize_millimeters);
