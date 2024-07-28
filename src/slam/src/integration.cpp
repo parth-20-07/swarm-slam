@@ -13,6 +13,10 @@
 #include <mutex>
 #include <random>
 #include <chrono>
+#include <csignal>
+#include <functional>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 // Custom headers
 #include "sensor_msgs/LaserScan.h"
@@ -53,10 +57,14 @@ typedef struct
     std::mutex data_mutex; // Mutex to protect data access
 
     cv::Mat slam_map_image;
+    cv::Mat slam_map_path_image;
     bool motion_enabled = true;
     std::vector<pose_t> all_pose_robot_global_frame;
 
 } Robot;
+
+std::vector<std::thread> robot_threads;
+std::vector<std::unique_ptr<Robot>> robots;
 
 void encoderCallback(const nav_msgs::Odometry::ConstPtr &msg, // Position is in Meters
                      Robot &robot);
@@ -84,11 +92,6 @@ void setRobotMotion(Robot &robot, bool enable, ros::NodeHandle &nh)
         robot.encoder_sub.shutdown();
     }
 }
-
-#include <random>
-#include <mutex>
-#include <memory>
-#include <vector>
 
 void randomRobotInteraction(std::vector<std::unique_ptr<Robot>> &robots)
 {
@@ -173,7 +176,8 @@ void lidarCallback(const sensor_msgs::LaserScan::ConstPtr &msg,
     robot.all_pose_robot_global_frame.push_back(robot.robot_pose);
 
     Viz::gridToImage(robot.slam_map_image, currentMap_robot_origin_frame);
-    Viz::plotGraphPoints(robot.slam_map_image, robot.all_pose_robot_global_frame, Viz::red, robot.slam_map_image.cols, robot.robotMap);
+    robot.slam_map_image.copyTo(robot.slam_map_path_image);
+    Viz::plotGraphPoints(robot.slam_map_path_image, robot.all_pose_robot_global_frame, Viz::red, robot.slam_map_path_image.cols, robot.robotMap);
 }
 
 void encoderCallback(const nav_msgs::Odometry::ConstPtr &msg, // Position is in Meters
@@ -215,10 +219,67 @@ void displayThread(std::vector<std::unique_ptr<Robot>> &robots)
             std::lock_guard<std::mutex> lock(robots[i]->data_mutex);
 
             if (!robots[i]->slam_map_image.empty())
-                cv::imshow("Lidar Map " + std::to_string(i), robots[i]->slam_map_image);
+                cv::imshow("Lidar Map " + std::to_string(i), robots[i]->slam_map_path_image);
         }
         cv::waitKey(1); // Adjust the delay as needed
     }
+}
+
+void shutdownHandler(int sig)
+{
+    // Your existing shutdown code
+    std::string dir_path = __FILE__;
+    auto pos = dir_path.find_last_of('/');
+    if (pos != std::string::npos)
+    {
+        dir_path = dir_path.substr(0, pos);
+    }
+    pos = dir_path.find_last_of('/');
+    if (pos != std::string::npos)
+    {
+        dir_path = dir_path.substr(0, pos);
+    }
+    dir_path += "/results";
+
+    // Check if the directory exists
+    if (fs::exists(dir_path))
+    {
+        fs::remove_all(dir_path);
+    }
+
+    // Create a new directory
+    if (!fs::create_directory(dir_path))
+    {
+        std::cerr << "Failed to create directory: " << dir_path << std::endl;
+    }
+    else
+    {
+        std::cout << "Directory created: " << dir_path << std::endl;
+    }
+
+    // Handle cleanup here
+    for (const auto &robot : robots)
+    {
+        const auto &image = robot->slam_map_image;
+        std::string filename = dir_path + "/robot_" + std::to_string(robot->robotID) + "_map.png";
+        if (image.empty())
+        {
+            std::cerr << "saveImage::Empty image, nothing to save." << std::endl;
+            return;
+        }
+
+        // Write the image to a file
+        if (!cv::imwrite(filename, image))
+        {
+            std::cerr << "Failed to save the image to " << filename << std::endl;
+            return;
+        }
+
+        std::cout << "Image saved to " << filename << std::endl;
+    }
+
+    // Shutdown ROS node
+    ros::shutdown();
 }
 
 int main(int argc, char **argv)
@@ -226,8 +287,8 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "slam_integration");
     nh = new ros::NodeHandle; // Instantiate after ros::init()
 
-    std::vector<std::thread> robot_threads;
-    std::vector<std::unique_ptr<Robot>> robots;
+    // Register signal handler
+    std::signal(SIGINT, shutdownHandler);
 
     for (int i = 0; i < NUM_ROBOTS; ++i)
     {

@@ -37,10 +37,16 @@ public:
     //       {
     //         resize_grid(m_destination_map);
     //       }
-    //       m_destination_map(m_offset + y, m_offset + x) = cellState::MERGED;
+    //       m_destination_map(m_resizeOffset + y, m_resizeOffset + x) = cellState::MERGED;
     //     }
     //   }
     // }
+    while (m_destination_map.rows() < m_source_map.rows())
+    {
+      resize_grid(m_destination_map);
+    }
+
+    const int dest_offset = (m_destination_map.rows() - m_source_map.rows()) / 2.0F;
 
     // Merge the transformed source into the destination map
     for (int y = 0; y < m_source_map.rows(); ++y)
@@ -50,11 +56,9 @@ public:
         // Only merge cells that are not UNKNOWN
         if (m_source_map(y, x) != cellState::UNKNOWN)
         {
-          while (y >= m_destination_map.rows() || x >= m_destination_map.cols())
-          {
-            resize_grid(m_destination_map);
-          }
-          m_destination_map(m_offset + y, m_offset + x) = m_source_map(y, x);
+          const int x_off = x + dest_offset;
+          const int y_off = y + dest_offset;
+          m_destination_map(y_off, x_off) = m_source_map(y, x);
         }
       }
     }
@@ -67,12 +71,8 @@ private:
   Grid m_destination_map;
   Eigen::Matrix3d m_transformation_from_source_to_destination_robot_frame;
   const float m_gridSize;
-  int m_offset = 0;
 
 private:
-#include <Eigen/Dense>
-#include <cmath> // for trigonometric functions and fmod
-
   Eigen::Matrix3d calculateRelativePose(pose_t dest, pose_t src)
   {
     // Calculate translation components from dest to src in the global frame
@@ -148,14 +148,14 @@ private:
     Grid newGrid(newCellCount, newCellCount);
     newGrid.setConstant(cellState::UNKNOWN);
 
-    m_offset = (newCellCount - old_count) / 2.0F;
+    const int resizeOffset = (newCellCount - old_count) / 2.0F;
 
     // Copy the old grid into the new grid with the new offset
     for (std::size_t y = 0; y < old_count; ++y)
     {
       for (std::size_t x = 0; x < old_count; ++x)
       {
-        newGrid(y + m_offset, x + m_offset) = grid(y, x);
+        newGrid(y + resizeOffset, x + resizeOffset) = grid(y, x);
       }
     }
 
