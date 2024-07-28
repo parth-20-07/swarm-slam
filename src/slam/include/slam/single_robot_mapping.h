@@ -26,7 +26,8 @@ enum class cellState
 {
     EMPTY = 0,
     UNKNOWN = 1,
-    FILLED = 2
+    FILLED = 2,
+    MERGED = 3
 };
 
 typedef Eigen::Matrix<cellState, Eigen::Dynamic, Eigen::Dynamic> Grid;
@@ -49,6 +50,14 @@ public:
 
     int m_center;
     float m_gridCellSize_millimeters;
+
+    void setMap(Grid &map)
+    {
+        m_gridMap = map;
+        m_cellCount = map.rows();
+        m_totalGridLength_millimeters = m_cellCount * m_gridCellSize_millimeters;
+        m_center = static_cast<int>(m_cellCount / 2.0F);
+    }
 
 private:
     /* ---------------------------- Member Functions ---------------------------- */

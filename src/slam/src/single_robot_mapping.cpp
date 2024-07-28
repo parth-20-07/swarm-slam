@@ -49,8 +49,8 @@ bool map_environment::resize_grid(const float &new_grid_length_millimeters)
 
         // Update the grid map with the new grid
         std::swap(this->m_gridMap, newGrid);
-        std::cout << "Resize Successful!!" << "\nCurrent size is: " << static_cast<int>(this->m_totalGridLength_millimeters) << " mm | " << static_cast<int>(m_cellCount)
-                  << "\nNew Requested Grid Size: " << static_cast<int>(new_grid_length_millimeters) << " mm| " << static_cast<int>(newCellCount) << std::endl;
+        // std::cout << "Resize Successful!!" << "\nCurrent size is: " << static_cast<int>(this->m_totalGridLength_millimeters) << " mm | " << static_cast<int>(m_cellCount)
+        //   << "\nNew Requested Grid Size: " << static_cast<int>(new_grid_length_millimeters) << " mm| " << static_cast<int>(newCellCount) << std::endl;
         this->m_cellCount = newCellCount;
         this->m_totalGridLength_millimeters = new_grid_length_millimeters;
         this->m_center = static_cast<int>(this->m_cellCount / 2.0F);
@@ -87,7 +87,7 @@ Grid map_environment::updateMap_robot_origin_frame(const std::vector<coordinate_
             // Check grid boundaries and resize if necessary
             while (x_off < 0 || x_off >= m_cellCount || y_off < 0 || y_off >= m_cellCount)
             {
-                float new_length = m_totalGridLength_millimeters * 2.0F;
+                float new_length = m_totalGridLength_millimeters * 1.5F;
                 resize_grid(new_length);
                 x_off = m_center + static_cast<int>(x / this->m_gridCellSize_millimeters);
                 y_off = m_center + static_cast<int>(y / this->m_gridCellSize_millimeters);

@@ -220,24 +220,27 @@ robot_odometry::~robot_odometry() = default;
 // Update pose using x, y, and theta
 pose_t robot_odometry::m_update_pose(const float x, const float y, const float theta)
 {
-    double dx = x - m_startPose.x;
-    double dy = y - m_startPose.y;
+    // double dx = x - m_startPose.x;
+    // double dy = y - m_startPose.y;
 
-    // Rotation transformation with respect to the initial orientation
-    double cos_theta = cos(-m_startPose.theta);
-    double sin_theta = sin(-m_startPose.theta);
+    // // Rotation transformation with respect to the initial orientation
+    // double cos_theta = cos(-m_startPose.theta);
+    // double sin_theta = sin(-m_startPose.theta);
 
-    this->m_robotPose.x = cos_theta * dx - sin_theta * dy;
-    this->m_robotPose.y = sin_theta * dx + cos_theta * dy;
+    // this->m_robotPose.x = cos_theta * dx - sin_theta * dy;
+    // this->m_robotPose.y = sin_theta * dx + cos_theta * dy;
 
-    // Normalize the angle
-    double delta_theta = theta - m_startPose.theta;
-    this->m_robotPose.theta = fmod(delta_theta, 2 * M_PI);
-    if (this->m_robotPose.theta > M_PI)
-        this->m_robotPose.theta -= 2 * M_PI;
-    else if (this->m_robotPose.theta < -M_PI)
-        this->m_robotPose.theta += 2 * M_PI;
+    // // Normalize the angle
+    // double delta_theta = theta - m_startPose.theta;
+    // this->m_robotPose.theta = fmod(delta_theta, 2 * M_PI);
+    // if (this->m_robotPose.theta > M_PI)
+    //     this->m_robotPose.theta -= 2 * M_PI;
+    // else if (this->m_robotPose.theta < -M_PI)
+    //     this->m_robotPose.theta += 2 * M_PI;
 
+    this->m_robotPose.x = x;
+    this->m_robotPose.y = y;
+    this->m_robotPose.theta = theta;
     return this->m_robotPose;
 }
 

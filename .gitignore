@@ -97,3 +97,5 @@ CATKIN_IGNORE
 *.vsix
 
 .catkin_tools
+
+.idea/*

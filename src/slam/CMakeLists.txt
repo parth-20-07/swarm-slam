@@ -42,6 +42,7 @@ add_executable(slam
   src/integration.cpp
   src/process_sensor_data.cpp
   src/single_robot_mapping.cpp
+  src/map_merging.cpp
 )
 
 target_link_libraries(slam

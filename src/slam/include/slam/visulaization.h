@@ -35,6 +35,7 @@ namespace Viz
             cv::line(image, cv::Point(x_off, y_off), cv::Point(x_end, y_end), color, 1);
         }
     }
+
     void plotLinesObstacles(
         cv::Mat &image,
         const std::vector<coordinate_t> &coordinates,
@@ -67,6 +68,7 @@ namespace Viz
         static const cv::Vec3b emptyColor(255, 255, 255);   // White for EMPTY
         static const cv::Vec3b unknownColor(127, 127, 127); // Grey for UNKNOWN
         static const cv::Vec3b filledColor(0, 0, 0);        // Black for FILLED
+        static const cv::Vec3b mergedColor(255, 0, 0);      // Blue for FILLED
 
         // Populate the image
         for (int y = 0; y < rows; y++)
@@ -87,6 +89,9 @@ namespace Viz
                         break;
                     case cellState::FILLED:
                         image.at<cv::Vec3b>(y_val, x) = filledColor;
+                        break;
+                    case cellState::MERGED:
+                        image.at<cv::Vec3b>(y_val, x) = mergedColor;
                         break;
                     default:
                         std::cout << "Unknown cell state\n";
