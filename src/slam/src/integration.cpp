@@ -16,6 +16,8 @@
 #include <csignal>
 #include <functional>
 #include <filesystem>
+#include <cstdlib> // For std::getenv
+
 namespace fs = std::filesystem;
 
 // Custom headers
@@ -33,9 +35,8 @@ const pose_t lidar_to_robot_transformation{0.0F, 0.0F, 0.0F};
 /////////////////////////// Mapping Variables /////////////////////////////
 constexpr float grid_size = 20.0f;
 ////////////////////////// Thread Specific Variables ////////////////////////
-#define NUM_ROBOTS 3
-#define MERGING_TIME_SEC 20
-
+#define MERGING_TIME_SEC 5
+int NUM_ROBOTS;
 ros::NodeHandle *nh = nullptr; // Define the global pointer
 
 typedef struct
@@ -286,6 +287,8 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "slam_integration");
     nh = new ros::NodeHandle; // Instantiate after ros::init()
+    const char* env_num_robots = std::getenv("NUM_OF_ROBOTS");
+    NUM_ROBOTS = (env_num_robots != nullptr) ? std::stoi(env_num_robots) : 3; // Default to 3 if not set
 
     // Register signal handler
     std::signal(SIGINT, shutdownHandler);

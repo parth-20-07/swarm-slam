@@ -1,9 +1,62 @@
 <launch>
     <arg name="robot1" default="tb3_0"/>
-    <arg name="robot2" default="tb3_1"/>
-    <arg name="robot3" default="tb3_2"/>
 
     <node pkg="slam" type="random_movement.py" name="random_mover_tb3_0" args="$(arg robot1)" output="screen"/>
+
+    <arg name="robot2" default="tb3_1"/>
+
     <node pkg="slam" type="random_movement.py" name="random_mover_tb3_1" args="$(arg robot2)" output="screen"/>
+
+    <arg name="robot3" default="tb3_2"/>
+
     <node pkg="slam" type="random_movement.py" name="random_mover_tb3_2" args="$(arg robot3)" output="screen"/>
+
+    <arg name="robot4" default="tb3_3"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_3" args="$(arg robot4)" output="screen"/>
+
+    <arg name="robot5" default="tb3_4"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_4" args="$(arg robot5)" output="screen"/>
+
+    <arg name="robot6" default="tb3_5"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_5" args="$(arg robot6)" output="screen"/>
+
+    <arg name="robot7" default="tb3_6"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_6" args="$(arg robot7)" output="screen"/>
+
+    <arg name="robot8" default="tb3_7"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_7" args="$(arg robot8)" output="screen"/>
+
+    <arg name="robot9" default="tb3_8"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_8" args="$(arg robot9)" output="screen"/>
+
+    <arg name="robot10" default="tb3_9"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_9" args="$(arg robot10)" output="screen"/>
+
+    <arg name="robot11" default="tb3_10"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_10" args="$(arg robot11)" output="screen"/>
+
+    <arg name="robot12" default="tb3_11"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_11" args="$(arg robot12)" output="screen"/>
+
+    <arg name="robot13" default="tb3_12"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_12" args="$(arg robot13)" output="screen"/>
+
+    <arg name="robot14" default="tb3_13"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_13" args="$(arg robot14)" output="screen"/>
+
+    <arg name="robot15" default="tb3_14"/>
+
+    <node pkg="slam" type="random_movement.py" name="random_mover_tb3_14" args="$(arg robot15)" output="screen"/>
+
 </launch>

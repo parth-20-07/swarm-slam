@@ -86,5 +86,6 @@
         "future": "cpp",
         "*.ipp": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "python.analysis.typeCheckingMode": "basic"
 }

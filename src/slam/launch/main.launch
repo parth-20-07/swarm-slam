@@ -1,0 +1,13 @@
+<launch>
+    <arg name="model" default="$(env TURTLEBOT3_MODEL)" />
+    <arg name="num_tb3" default="$(env NUM_OF_ROBOTS)" />
+
+    <!-- Include the generated TurtleBot3 launch file -->
+    <include file="$(find turtlebot3_gazebo)/launch/multi_turtlebot3.launch" />
+
+    <!-- Include the generated Random Movement launch file -->
+    <include file="$(find slam)/launch/random_movement.launch" />
+
+    <!-- SLAM Node -->
+    <node name="slam_node" pkg="slam" type="slam" output="screen" launch-prefix="bash -c 'sleep 10; $0 $@'" />
+</launch>
